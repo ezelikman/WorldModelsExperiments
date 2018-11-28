@@ -91,7 +91,7 @@ class ConvVAE(object):
 
   def _init_session(self):
     """Launch TensorFlow session and initialize variables"""
-    self.sess = tf.Session(graph=self.g)
+    self.sess = tf.Session(graph=self.g, config=tf.ConfigProto(gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.)))
     self.sess.run(self.init)
   def close_sess(self):
     """ Close TensorFlow session """

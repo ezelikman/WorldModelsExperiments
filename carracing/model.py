@@ -10,7 +10,7 @@ import time
 from vae.vae import ConvVAE
 from rnn.rnn import hps_sample, MDNRNN, rnn_init_state, rnn_next_state, rnn_output, rnn_output_size
 
-render_mode = True
+render_mode = False
 
 # controls whether we concatenate (z, c, h), etc for features used for car.
 MODE_ZCH = 0
@@ -151,7 +151,7 @@ class Model:
     rnn_params = self.rnn.get_random_model_params(stdev=stdev)
     self.rnn.set_model_params(rnn_params)
 
-def simulate(model, train_mode=False, render_mode=True, num_episode=5, seed=-1, max_len=-1):
+def simulate(model, train_mode=False, render_mode=False, num_episode=5, seed=-1, max_len=-1):
 
   reward_list = []
   t_list = []

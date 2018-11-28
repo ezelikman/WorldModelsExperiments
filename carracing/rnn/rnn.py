@@ -3,6 +3,7 @@ from collections import namedtuple
 import json
 import tensorflow as tf
 
+
 # hyperparameters for our model. I was using an older tf version, when HParams was not available ...
 
 # controls whether we concatenate (z, c, h), etc for features used for car.
@@ -34,7 +35,7 @@ HyperParams = namedtuple('HyperParams', ['num_steps',
                                         ])
 
 def default_hps():
-  return HyperParams(num_steps=2000, # train model for 2000 steps.
+  return HyperParams(num_steps=200, # train model for 200 steps.
                      max_seq_len=1000, # train on sequences of 100
                      input_seq_width=35,    # width of our data (32 + 3 actions)
                      output_seq_width=32,    # width of our data is 32
@@ -171,7 +172,7 @@ class MDNRNN():
     self.init = tf.global_variables_initializer()
   def init_session(self):
     """Launch TensorFlow session and initialize variables"""
-    self.sess = tf.Session(graph=self.g)
+    self.sess = tf.Session(graph=self.g, config=tf.ConfigProto(gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)))
     self.sess.run(self.init)
   def close_sess(self):
     """ Close TensorFlow session """

@@ -53,14 +53,6 @@ batch_size=1000 # treat every episode as a batch of 1000!
 learning_rate=0.0001
 kl_tolerance=0.5
 
-filelist = os.listdir(DATA_DIR)
-filelist.sort()
-filelist = filelist[0:10000]
-
-dataset, action_dataset = load_raw_data_list(filelist)
-
-reset_graph()
-
 vae = ConvVAE(z_size=z_size,
               batch_size=batch_size,
               learning_rate=learning_rate,
@@ -69,20 +61,29 @@ vae = ConvVAE(z_size=z_size,
               reuse=False,
               gpu_mode=True) # use GPU on batchsize of 1000 -> much faster
 
-vae.load_json(os.path.join(model_path_name, 'vae.json'))
+def serialize_rollouts():
+  filelist = os.listdir(DATA_DIR)
+  filelist.sort()
+  filelist = filelist[0:10000]
 
-mu_dataset = []
-logvar_dataset = []
-for i in range(len(dataset)):
-  data_batch = dataset[i]
-  mu, logvar, z = encode_batch(data_batch)
-  mu_dataset.append(mu.astype(np.float16))
-  logvar_dataset.append(logvar.astype(np.float16))
-  if ((i+1) % 100 == 0):
-    print(i+1)
+  dataset, action_dataset = load_raw_data_list(filelist)
 
-action_dataset = np.array(action_dataset)
-mu_dataset = np.array(mu_dataset)
-logvar_dataset = np.array(logvar_dataset)
+  reset_graph()
 
-np.savez_compressed(os.path.join(SERIES_DIR, "series.npz"), action=action_dataset, mu=mu_dataset, logvar=logvar_dataset)
+  vae.load_json(os.path.join(model_path_name, 'vae.json'))
+
+  mu_dataset = []
+  logvar_dataset = []
+  for i in range(len(dataset)):
+    data_batch = dataset[i]
+    mu, logvar, z = encode_batch(data_batch)
+    mu_dataset.append(mu.astype(np.float16))
+    logvar_dataset.append(logvar.astype(np.float16))
+    if ((i+1) % 100 == 0):
+      print(i+1)
+
+  action_dataset = np.array(action_dataset)
+  mu_dataset = np.array(mu_dataset)
+  logvar_dataset = np.array(logvar_dataset)
+
+  np.savez_compressed(os.path.join(SERIES_DIR, "series.npz"), action=action_dataset, mu=mu_dataset, logvar=logvar_dataset)

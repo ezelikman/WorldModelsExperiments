@@ -29,7 +29,7 @@ eval_steps = 25 # evaluate every N_eval steps
 retrain_mode = True
 cap_time_mode = True
 
-num_worker = 8
+num_worker = 2
 num_worker_trial = 1
 
 population = num_worker * num_worker_trial
@@ -65,7 +65,6 @@ def initialize_settings(sigma_init=0.1, sigma_decay=0.9999):
   filebase = 'log/'+gamename+'.'+optimizer+'.'+str(num_episode)+'.'+str(population)
   model = make_model()
   num_params = model.param_count
-  print("size of model", num_params)
 
   if optimizer == 'ses':
     ses = PEPG(num_params,
@@ -287,6 +286,7 @@ def master():
   model.make_env()
 
   t = 0
+  best_t = 0
 
   history = []
   history_best = [] # stores evaluation averages every 25 steps or so
@@ -349,8 +349,10 @@ def master():
 
     sprint(gamename, h)
 
+    sprint(t)
     if (t == 1):
       best_reward_eval = avg_reward
+      best_t = 1
     if (t % eval_steps == 0): # evaluate on actual task at hand
 
       prev_best_reward_eval = best_reward_eval
@@ -364,7 +366,10 @@ def master():
       if (len(eval_log) == 1 or reward_eval > best_reward_eval):
         best_reward_eval = reward_eval
         best_model_params_eval = model_params_quantized
+        best_t = t
       else:
+        if t - best_t > 50:
+          break
         if retrain_mode:
           sprint("reset to previous best params, where best_reward_eval =", best_reward_eval)
           es.set_mu(best_model_params_eval)
@@ -415,14 +420,14 @@ def mpi_fork(n):
       OMP_NUM_THREADS="1",
       IN_MPI="1"
     )
-    print( ["mpirun", "-np", str(n), sys.executable] + sys.argv)
-    subprocess.check_call(["mpirun", "-np", str(n), sys.executable] +['-u']+ sys.argv, env=env)
+    subprocess.check_call(["mpiexec", "-np", str(n), sys.executable] +['-u']+ sys.argv, env=env)
+    # subprocess.check_call(["mpirun", "-np", str(n), sys.executable] +['-u']+ sys.argv, env=env)
     return "parent"
   else:
     global nworkers, rank
     nworkers = comm.Get_size()
     rank = comm.Get_rank()
-    print('assigning the rank and nworkers', nworkers, rank)
+    # print('assigning the rank and nworkers', nworkers, rank)
     return "child"
 
 if __name__ == "__main__":
@@ -432,7 +437,7 @@ if __name__ == "__main__":
   parser.add_argument('-o', '--optimizer', type=str, help='ses, pepg, openes, ga, cma.', default='cma')
   parser.add_argument('--num_episode', type=int, default=16, help='num episodes per trial')
   parser.add_argument('--eval_steps', type=int, default=25, help='evaluate every eval_steps step')
-  parser.add_argument('-n', '--num_worker', type=int, default=64)
+  parser.add_argument('-n', '--num_worker', type=int, default=2)
   parser.add_argument('-t', '--num_worker_trial', type=int, help='trials per worker', default=1)
   parser.add_argument('--antithetic', type=int, default=1, help='set to 0 to disable antithetic sampling')
   parser.add_argument('--cap_time', type=int, default=0, help='set to 0 to disable capping timesteps to 2x of average.')
@@ -442,5 +447,6 @@ if __name__ == "__main__":
   parser.add_argument('--sigma_decay', type=float, default=0.999, help='sigma_decay')
 
   args = parser.parse_args()
+  # print(args.num_worker)
   if "parent" == mpi_fork(args.num_worker+1): os.exit()
   main(args)
